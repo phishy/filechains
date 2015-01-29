@@ -5,7 +5,7 @@ var Promise = require('bluebird');
 var exec = require('child_process').exec;
 var interpolate = require('interpolate');
 var parse = require('url-parse');
-var fs = require('fs');
+var fs = require('fs-extra');
 var tmp = require('temporary');
 var _ = require('lodash');
 
@@ -26,15 +26,25 @@ function Action(action, files) {
         throw new Error('missing source files');
     }
 
+    if (!('remove' in a)) {
+        a.remove = true;
+    }
+
     if (!('using' in a)) {
         a.using = {};
+    }
+
+    var dir = '';
+    if ('moveTo' in a) {
+        dir = a.moveTo;
+    } else {
+        dir = new tmp.Dir().path;
     }
 
     if ('do' in a) {
         files.forEach(function(file){
             a.using.$file = file;
             cmd = interpolate(a.do, a.using);
-            log.debug({ name: desc, cmd: cmd });
             exec(cmd, function (err, stdout, stderr) {
                 if (err) throw err;
                 log.info({ name: desc, stdout: stdout, stderr: stderr });
@@ -44,8 +54,31 @@ function Action(action, files) {
     }
 
     if ('files' in a) {
-        var dir = new tmp.Dir();
         switch (parse(a.files).protocol) {
+            case '':
+                var outfiles = [];
+                fs.readdir(a.files, function(err, files){
+                    if (err) return def.reject(err);
+                    files.forEach(function(file){
+                        var src = a.files +'/'+ file;
+                        var dest = dir +'/'+ file;
+                        outfiles.push(dest);
+                        if (a.remove) {
+                            fs.rename(src, dest, function(err){
+                                if (err) def.reject(err);
+                            });
+                        } else {
+                            fs.copy(src, dest, function(err){
+                                if (err) def.reject(err);
+                            });
+                        }
+                    });
+                    def.resolve(outfiles);
+                    return def.resolve(_.map(files, function(f){
+                        return a.files + '/' + f;
+                    }));
+                });
+                break;
             case 'sftp:':
                 sftp(a, dir).then(function(files){
                     return def.resolve(files);
@@ -61,13 +94,21 @@ function Workflow() {
 
 }
 
+/**
+ * Calls a series of actions then returns the output
+ *
+ * @param actions
+ * @returns {*}
+ */
 Workflow.run = function (actions) {
     var files = [];
-    return Promise.each(actions, function (action) {
-        files = new Action(action, files);
-    }).then(function(){
-        return files;
+    var promise = Promise.resolve(files);
+    actions.forEach(function (action) {
+        promise = promise.then(function (outFiles) {
+            return new Action(action, outFiles);
+        });
     });
+    return promise;
 };
 
 module.exports = {

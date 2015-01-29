@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+var run = require('../filechains').Workflow.run;
+
+process.argv.slice(2).forEach(function(file){
+    var json = JSON.parse(fs.readFileSync(file));
+    run(json).then(function(){
+        process.exit(0);
+    });
+});

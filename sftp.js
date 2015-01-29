@@ -58,10 +58,18 @@ module.exports = function sftp(action, dir) {
                 var promises = [];
                 matches.forEach(function (match) {
                     var p = new Promise(function (resolve, reject) {
-                        sftp.fastGet(url.pathname + '/' + match, dir.path + '/' + match, function (err) {
+                        sftp.fastGet(url.pathname + '/' + match, dir + '/' + match, function (err) {
                             if (err) return reject(err);
-                            files.push(dir.path + '/' + match);
-                            resolve();
+                            if (action.remove) {
+                                sftp.unlink(url.pathname + '/' + match, function(err){
+                                    if (err) return reject(err);
+                                    files.push(dir + '/' + match);
+                                    return resolve();
+                                });
+                            } else {
+                                files.push(dir + '/' + match);
+                                return resolve();
+                            }
                         });
                     });
                     promises.push(p);
