@@ -1,6 +1,4 @@
-var Log = require('log')
-    , log = new Log('info');
-
+var log = require('captains-log')();
 var Promise = require('bluebird');
 var exec = require('child_process').exec;
 var interpolate = require('interpolate');
@@ -15,7 +13,7 @@ var sftp = require('./sftp');
  * Capture file list, stdout, stderr
  * @constructor
  */
-function Action(action, files) {
+function Action(action, files, options) {
 
     var def = Promise.defer();
 
@@ -45,9 +43,11 @@ function Action(action, files) {
         files.forEach(function(file){
             a.using.$file = file;
             cmd = interpolate(a.do, a.using);
+            if (options.debug) {
+                log.debug(desc, cmd, a);
+            }
             exec(cmd, function (err, stdout, stderr) {
                 if (err) throw err;
-                log.info({ name: desc, stdout: stdout, stderr: stderr });
                 return def.resolve(files);
             });
         });
@@ -100,12 +100,15 @@ function Workflow() {
  * @param actions
  * @returns {*}
  */
-Workflow.run = function (actions) {
+Workflow.run = function (actions, options) {
+    if (options.debug) {
+        log.debug('starting workflow', actions);
+    }
     var files = [];
     var promise = Promise.resolve(files);
     actions.forEach(function (action) {
         promise = promise.then(function (outFiles) {
-            return new Action(action, outFiles);
+            return new Action(action, outFiles, options);
         });
     });
     return promise;

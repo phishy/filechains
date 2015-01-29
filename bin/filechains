@@ -1,11 +1,28 @@
 #!/usr/bin/env node
 
 var fs = require('fs');
+var hanson = require('hanson');
+var program = require('commander');
+var log = require('captains-log')();
 var run = require('../filechains').Workflow.run;
 
-process.argv.slice(2).forEach(function(file){
-    var json = JSON.parse(fs.readFileSync(file));
-    run(json).then(function(){
+program
+    .version('0.1.0')
+    .option('-d, --debug', 'Debug')
+    .parse(process.argv);
+
+var options = {
+    debug: (program.debug) ?  true : false
+};
+
+program.args.forEach(function(file){
+    var json = hanson.parse(fs.readFileSync(file).toString());
+    run(json, options).then(function(){
+        if (options.debug) {
+            log.debug('successfully completed workflow');
+        }
         process.exit(0);
+    }).then(function(){}).catch(function(err){
+        log.error('an error occured', err);
     });
 });
