@@ -20,6 +20,11 @@ function Action(action, files, options) {
     var desc = Object.keys(action)[0];
     var a = action[desc];
 
+    if (!options) {
+        options = {
+            debug: false
+        };
+    }
     if (!files && !('files' in a)) {
         throw new Error('missing source files');
     }
@@ -42,6 +47,7 @@ function Action(action, files, options) {
     if ('do' in a) {
         files.forEach(function(file){
             a.using.$file = file;
+            a.using.$files = files.join(' ');
             cmd = interpolate(a.do, a.using);
             if (options.debug) {
                 log.debug(desc, cmd, a);
