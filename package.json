@@ -1,6 +1,6 @@
 {
   "name": "filechains",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "JSON language for fetching, transforming, and sending files",
   "homepage": "https://github.com/phishy/filechains",
   "main": "filechains.js",
