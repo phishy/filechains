@@ -8,7 +8,9 @@ Filechains is a descriptive way to fetch, transform, and transmit a collection o
 
 `filechains workflow.json`
 
-## Example ##
+## Examples ##
+
+### Retrieve files via rsync, chmod them, and zip them 
 
 ```
 Workflow.run([
@@ -35,6 +37,8 @@ Workflow.run([
 ## Options ##
 
 * files - string - input URI for files to fetch
+* to - string - output URL for files to send
+* match - string - a glob-compatible pattern for matching files to send
 * privateKey - path - path to private key for use with sftp
 * passphrase - string - passphrase for privateKey
 * do - string - command to perform on each file. $file is an automatic variable containing the filename

@@ -6,8 +6,10 @@ var parse = require('url-parse');
 var fs = require('fs-extra');
 var tmp = require('temporary');
 var _ = require('lodash');
+var path = require('path');
+var glob = require('glob');
 
-var sftp = require('./sftp');
+var sftp = require('./modules/protocols/sftp');
 
 /**
  * Capture file list, stdout, stderr
@@ -37,30 +39,55 @@ function Action(action, files, options) {
         a.using = {};
     }
 
-    var dir = '';
-    if ('moveTo' in a) {
-        dir = a.moveTo;
-    } else {
-        dir = new tmp.Dir().path;
+    if (!('moveTo' in a)) {
+        a.moveTo = new tmp.Dir().path;
     }
 
     if ('do' in a) {
+        var commands = [];
         files.forEach(function(file){
+            a.using.$dir = path.dirname(file);
             a.using.$file = file;
             a.using.$files = files.join(' ');
             cmd = interpolate(a.do, a.using);
+            commands.push(cmd);
             if (options.debug) {
-                log.debug(desc, cmd, a);
+                log.debug(desc, cmd);
             }
-            exec(cmd, function (err, stdout, stderr) {
+            exec(commands.join(';'), function (err, stdout, stderr) {
                 if (err) throw err;
-                return def.resolve(files);
+                glob(a.using.$dir + '/**', { nodir: true }, function(err, files){
+                    if (err) return def.reject(err);
+                    def.resolve(files);
+                });
             });
         });
     }
 
+
+    if ('to' in a) {
+        a.moveTo = interpolate(a.to, a.using);
+        var protocol = parse(a.to).protocol.replace(':', '');
+        return require('./modules/protocols/' + protocol).put(a, files).then(function(files){
+           return def.resolve(files);
+        }).catch(function(err){
+            log.error(err);
+            return def.reject(err);
+        });
+    }
+
     if ('files' in a) {
-        switch (parse(a.files).protocol) {
+        a.files = interpolate(a.files, a.using);
+        var protocol = parse(a.files).protocol.replace(':', '');
+        switch (protocol) {
+            case 'rsync':
+                require('./modules/protocols/rsync').get(a).then(function(files){
+                    def.resolve(files);
+                }).catch(function(err){
+                    log.error(err);
+                    return def.reject(err);
+                });
+                break;
             case '':
                 var outfiles = [];
                 fs.readdir(a.files, function(err, files){
@@ -72,10 +99,16 @@ function Action(action, files, options) {
                         if (a.remove) {
                             fs.rename(src, dest, function(err){
                                 if (err) def.reject(err);
+                                if (options.debug) {
+                                    log.debug(desc, dest);
+                                }
                             });
                         } else {
                             fs.copy(src, dest, function(err){
                                 if (err) def.reject(err);
+                                if (options.debug) {
+                                    log.debug(desc, dest);
+                                }
                             });
                         }
                     });
@@ -86,7 +119,12 @@ function Action(action, files, options) {
                 });
                 break;
             case 'sftp:':
-                sftp(a, dir).then(function(files){
+                Sftp.get(a, dir).then(function(files){
+                    if (options.debug) {
+                        files.forEach(function(file){
+                            log.debug("\t\t" + file +' -> ' + dir);
+                        });
+                    }
                     return def.resolve(files);
                 });
                 break;
@@ -107,14 +145,18 @@ function Workflow() {
  * @returns {*}
  */
 Workflow.run = function (actions, options) {
-    if (options.debug) {
-        log.debug('starting workflow', actions);
-    }
+    var debug = (options && 'debug' in options && options.debug) ? true : false;
     var files = [];
     var promise = Promise.resolve(files);
     actions.forEach(function (action) {
         promise = promise.then(function (outFiles) {
+            if (debug) {
+                log.debug("\t", Object.keys(action)[0]);
+                action.debug = true;
+            }
             return new Action(action, outFiles, options);
+        }).catch(function(err){
+            log.error(err);
         });
     });
     return promise;

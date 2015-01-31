@@ -1,9 +1,20 @@
 [
-    { "fetch files from remote server": {
-        "files": "/Users/jeff/Desktop/in",
-        "moveTo": "/Users/jeff/Desktop/out"
-    }},
-    { "chmod files": {
-        "do": "chmod 777 {$file}"
-    }}
+    {
+        "fetch files from remote server": {
+            "files": "/Users/jeff/Desktop/in",
+            "moveTo": "/Users/jeff/Desktop/out"
+        }
+    },
+    {
+        "chmod files": {
+            "do": "chmod 777 {$file}"
+        }
+    },
+    {
+        'post files to the web': {
+            module: 'rsync',
+            method: 'post',
+            url: 'http://localhost/messages'
+        }
+    }
 ]

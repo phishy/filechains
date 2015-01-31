@@ -9,8 +9,48 @@ var parse = require('url-parse');
 var minimatch = require('minimatch');
 var Promise = require('bluebird');
 var fs = require('fs');
+var _ = require('lodash');
 
-module.exports = function sftp(action, dir) {
+module.exports = Sftp;
+
+/**
+ *
+ * @constructor
+ */
+function Sftp() {
+}
+
+/**
+ *
+ * @param options
+ */
+Sftp.put = function(files, options) {
+    var opts = {
+        host: null,
+        port: '',
+        username: '',
+        privateKey: '',
+        passphrase: ''
+    };
+    _.defaults(options, opts);
+    var def = Promise.defer();
+
+    var conn = new Connection();
+    conn.on('ready').then(function(){
+        conn.sftp(function(err, sftp){
+            if (err) def.reject(err);
+            sftp.fastGet
+        });
+    });
+};
+
+/**
+ *
+ * @param action
+ * @param dir
+ * @returns {*}
+ */
+Sftp.get = function (action, dir) {
 
     var def = Promise.defer();
 
@@ -35,7 +75,7 @@ module.exports = function sftp(action, dir) {
     var conn = new Connection();
     conn.on('ready', function () {
         conn.sftp(function (err, sftp) {
-            if (err) throw err;
+            if (err) return def.reject(err);
             sftp.readdir(url.pathname, function (err, list) {
                 if (err) throw err;
 
@@ -88,3 +128,4 @@ module.exports = function sftp(action, dir) {
 
     return def.promise;
 };
+
