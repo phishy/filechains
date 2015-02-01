@@ -8,6 +8,7 @@ var tmp = require('temporary');
 var _ = require('lodash');
 var path = require('path');
 var glob = require('glob');
+var logSymbols = require('log-symbols');
 
 var sftp = require('./modules/protocols/sftp');
 
@@ -32,7 +33,7 @@ function Action(action, files, options) {
     }
 
     if (!('remove' in a)) {
-        a.remove = true;
+        a.remove = false;
     }
 
     if (!('using' in a)) {
@@ -54,12 +55,17 @@ function Action(action, files, options) {
             if (options.debug) {
                 log.debug(desc, cmd);
             }
-            exec(commands.join(';'), function (err, stdout, stderr) {
-                if (err) throw err;
-                glob(a.using.$dir + '/**', { nodir: true }, function(err, files){
-                    if (err) return def.reject(err);
-                    def.resolve(files);
-                });
+        });
+        exec(commands.join(';'), function (err, stdout, stderr) {
+            if (err) {
+                log.error(err);
+                log.info(logSymbols.error, desc);
+                return def.reject(err);
+            }
+            log.info(logSymbols.success, desc);
+            glob(a.using.$dir + '/**', { nodir: true }, function(err, files){
+                if (err) return def.reject(err);
+                return def.resolve(files);
             });
         });
     }
@@ -69,9 +75,11 @@ function Action(action, files, options) {
         a.moveTo = interpolate(a.to, a.using);
         var protocol = parse(a.to).protocol.replace(':', '');
         return require('./modules/protocols/' + protocol).put(a, files).then(function(files){
+           log.info(logSymbols.success, desc);
            return def.resolve(files);
         }).catch(function(err){
             log.error(err);
+            log.info(logSymbols.error, desc);
             return def.reject(err);
         });
     }
@@ -82,6 +90,7 @@ function Action(action, files, options) {
         switch (protocol) {
             case 'rsync':
                 require('./modules/protocols/rsync').get(a).then(function(files){
+                    log.info(logSymbols.success, desc);
                     def.resolve(files);
                 }).catch(function(err){
                     log.error(err);
@@ -146,17 +155,18 @@ function Workflow() {
  */
 Workflow.run = function (actions, options) {
     var debug = (options && 'debug' in options && options.debug) ? true : false;
-    var files = [];
-    var promise = Promise.resolve(files);
+    var promise = Promise.resolve([]);
     actions.forEach(function (action) {
         promise = promise.then(function (outFiles) {
             if (debug) {
-                log.debug("\t", Object.keys(action)[0]);
+                log.debug(Object.keys(action)[0]);
                 action.debug = true;
             }
             return new Action(action, outFiles, options);
         }).catch(function(err){
             log.error(err);
+            // @todo perhaps something else we can do other than throw an exception?
+            throw err;
         });
     });
     return promise;

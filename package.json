@@ -1,9 +1,19 @@
 {
   "name": "filechains",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "JSON language for fetching, transforming, and sending files",
   "homepage": "https://github.com/phishy/filechains",
   "main": "filechains.js",
+  "keywords": [
+    "file",
+    "rsync",
+    "ssh",
+    "command",
+    "transfer",
+    "transform",
+    "esb",
+    "enterprise service bus"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/phishy/filechains.git"
@@ -23,16 +33,20 @@
   "dependencies": {
     "bluebird": "^2.9.3",
     "captains-log": "^0.11.11",
+    "chalk": "^0.5.1",
     "commander": "^2.6.0",
     "fs-extra": "^0.16.3",
     "glob": "^4.3.5",
     "hanson": "^1.1.1",
     "interpolate": "^0.1.0",
     "lodash": "^3.0.0",
+    "log-symbols": "^1.0.1",
     "minimatch": "^2.0.1",
     "ssh2": "^0.3.6",
+    "superb": "^1.1.2",
     "temporary": "0.0.8",
     "url": "^0.10.2",
-    "url-parse": "^1.0.0"
+    "url-parse": "^1.0.0",
+    "winston": "^0.8.3"
   }
 }

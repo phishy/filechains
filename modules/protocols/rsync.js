@@ -79,14 +79,14 @@ module.exports = {
 
         vars.flags = this._options(flags);
 
-        var cmd = interpolate("rsync -r {flags} {username}@{host}:/{pathname}/ {moveTo}/", vars);
-        if (action.debug) log.debug(cmd);
+        var cmd = interpolate("rsync -rv {flags} {username}@{host}:/{pathname}/ {moveTo}/", vars);
 
         var def = Promise.defer();
+
         exec(cmd, function(err, stdout, stderr){
             if (err) return def.reject(err);
-            log.debug('stdout', stdout);
-            log.debug('stderr', stderr);
+            if (stdout) log.debug(stdout);
+            if (stderr) log.debug(stderr);
             glob(vars.moveTo + '/**', { nodir: true }, function(err, files){
                 if (err) return def.reject(err);
                 def.resolve(files);
@@ -137,14 +137,14 @@ module.exports = {
         vars.moveTo = moveTo.format().replace('//', '');
         vars.moveTo = vars.moveTo.replace('/', ':/');
 
-        var cmd = interpolate("rsync -r {flags} {files} {moveTo}", vars);
+        var cmd = interpolate("rsync -rv {flags} {files} {moveTo}", vars);
         log.debug(cmd);
 
         var def = Promise.defer();
         exec(cmd, function(err, stdout, stderr){
             if (err) return def.reject(err);
-            log.debug('stdout', stdout);
-            log.debug('stderr', stderr);
+            if (stdout) log.debug(stdout);
+            if (stderr) log.debug(stderr);
             glob(vars.moveTo + '/**', { nodir: true }, function(err, files){
                 if (err) return def.reject(err);
                 def.resolve(files);

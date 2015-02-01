@@ -5,9 +5,12 @@ var hanson = require('hanson');
 var program = require('commander');
 var log = require('captains-log')();
 var run = require('../filechains').Workflow.run;
+var chalk = require('chalk');
+var superb = require('superb');
 
 program
-    .version('0.2.0')
+    .version('0.2.1')
+    .option('-n, --name <name>', 'Workflow name')
     .option('-d, --debug', 'Debug')
     .parse(process.argv);
 
@@ -16,13 +19,25 @@ var options = {
 };
 
 program.args.forEach(function(file){
+    if (typeof program.name == 'function') {
+        var name = file;
+    } else {
+        var name = program.name;
+    }
+    log.info(chalk.white.bgBlue(name));
     var json = hanson.parse(fs.readFileSync(file).toString());
     run(json, options).then(function(){
         if (options.debug) {
             log.debug('successfully completed workflow');
         }
+        log.info(chalk.yellow('That was ' + superb() + '!'));
         process.exit(0);
-    }).then(function(){}).catch(function(err){
-        log.error('an error occured', err);
+    }).then(function(){
+        // ?
+        process.exit(0);
+    }).catch(function(err){
+        log.error(err);
+        log.info(chalk.red('Bummer. There was an error.'));
+        process.exit(1);
     });
 });

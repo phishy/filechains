@@ -1,12 +1,28 @@
 ## Description ##
 
-Filechains is a descriptive way to fetch, transform, and transmit a collection of files using a JSON-style language.
+Filechains is a descriptive way to fetch, transform, and transmit a collection of files using a JSON definition.
 
 ## Installation ##
 
 `npm install -g filechains`
 
 `filechains workflow.json`
+
+## Philosophy ##
+
+We want to enable developers to be able to create highly readable scripts for doing standard file transmission and transformation operations. A non-technical person can look at the filechains syntax, understand what is happening, and consult the documentation in order to make modifications to the script without having to have deep knowledge of scripting.
+
+Sure, all of the capabilities of filechains can be accomplished using shell scripts. However, for each script you need to reinvent the wheel with regards to logging, debugging, and testing. Filechains gives you a framework, that allows you to define your workflow with JSON and also include the workflows into other Node projects. 
+
+## How It Works
+
+Filechains is an array of actions that operate on a set of files. The first action retrieves the list of files from the filesystem, rsync, sftp, ftp, etc using the `files` key. It uses a standard URL syntax in order to define the data source: `protocol://user:password@host:port/path`
+
+You can filter the files it retrieves using the `match` key. By default, the files are retrieved and stored in a temporary directory. If you would like to explicitly define another directory to place them in, you can supply the `moveTo` key. If you would like the files to be be removed from the source as they are retrieved, you can use the `remove` key.
+
+Once and action is complete, the list of files is sent to the next action. Using the `do` command, you can call any command line utility to have it operate on the set of files. The `do` command is interpolate with a set of variables you can supply via the `using` key. There are also a number of variables automatically available to you such as `$file` (the current file being operated on), `$files` (space-separated list of all files in the queue), and `$dir` (the directory in which the file queue is stored).
+
+Once you have defined a workflow, you can run it directly using the filechains command-line script. From there you can daemonize it with `pm2` and redirect stdout and stderr to files or a database.
 
 ## Examples ##
 
